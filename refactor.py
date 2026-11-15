@@ -32,8 +32,8 @@ def refactor_data_power(
     FAST_ALGS = []
     type = fig_name[-1]
     if "two-sample" in fig_name and type == "d":
-        FAST_ALGS = ["Dcorr", "Hsic"]
-        file_path = "two-sample-n-100_p-3_10"
+        FAST_ALGS = ["Dcorr", "Hsic", "KMERF-Honest"]
+        file_path = "two-sample-n-400_p-3_10"
         sample_dimensions = range(3, 11)
     elif "independence" in fig_name and type == "d":
         FAST_ALGS = ["Dcorr", "Hsic"]
@@ -95,7 +95,7 @@ _ = Parallel(n_jobs=-1, verbose=100)(
             alpha=0.05,
             max_reps=SIMULATIONS[fig_name[:-5]]["max_reps"],
         )
-        for alg in TESTS
+        for alg in TESTS + ["KMERF-Honest"]
         for fig_name in [
             "two-sample-power-vs-d",
             "two-sample-power-vs-n",
@@ -103,5 +103,7 @@ _ = Parallel(n_jobs=-1, verbose=100)(
             "independence-power-vs-d",
         ]
         for sim in SIMULATIONS[fig_name[:-5]]["sim"]
+        # KMERF-Honest only exists for two-sample power vs. dimension
+        if alg != "KMERF-Honest" or fig_name == "two-sample-power-vs-d"
     ]
 )

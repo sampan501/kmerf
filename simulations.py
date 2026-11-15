@@ -209,20 +209,19 @@ def make_marron_wand_classification(
         # more noise to the data using the w parameter
         w_vec = np.array([1.0 / np.sqrt(i) for i in range(1, n_informative + 1)])
 
-        # create new generator instance to ensure reproducibility with multiple runs
-        # with the same seed
-        rng_F = np.random.default_rng(seed=seed).spawn(2)
+        # independent child streams from the single seeded rng
+        rng_F0, rng_F1, *rng_noise = rng.spawn(2 + n_dim - n_informative)
 
         X = np.vstack(
             (
-                rng_F[0].multivariate_normal(
+                rng_F0.multivariate_normal(
                     np.zeros(n_informative),
                     cov,
                     n_samples // 2,
                     method=mvg_sampling_method,
                 ),
                 (1 - w_vec)
-                * rng_F[1].multivariate_normal(
+                * rng_F1.multivariate_normal(
                     np.zeros(n_informative),
                     cov,
                     n_samples // 2,
@@ -233,16 +232,13 @@ def make_marron_wand_classification(
         )
 
         if n_dim > n_informative:
-            # create new generator instance to ensure reproducibility with multiple
-            # runs with the same seed
-            rng_noise = np.random.default_rng(seed=seed)
             X = np.hstack(
                 (
                     X,
                     np.hstack(
                         [
                             rng_children.normal(loc=0, scale=1, size=(X.shape[0], 1))
-                            for rng_children in rng_noise.spawn(n_dim - n_informative)
+                            for rng_children in rng_noise
                         ]
                     ),
                 )

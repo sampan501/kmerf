@@ -19,13 +19,14 @@ sys.path.append(os.path.realpath(".."))
 
 
 DIMENSIONS = range(3, 11)
-SAMP_SIZE = 100
+SAMP_SIZE = 400
 REPS = range(1000)
 
 
 SAVE_PATH = "two-sample-n-{}_p-{}_{}".format(
     int(SAMP_SIZE), int(DIMENSIONS[0]), int(DIMENSIONS[-1])
 )
+os.makedirs(SAVE_PATH, exist_ok=True)
 
 
 TESTS = {
@@ -48,14 +49,14 @@ def _sim_slice(X, p):
     return X_t, y_t
 
 
-def _perm_stat(est, X, p):
+def _perm_stat(est, X, p, rep):
     """
     Generates null and alternate distributions
     """
     X, y = _sim_slice(X, p)
     y = y.reshape(-1, 1)
     obs_stat = est.statistic(X, y)
-    permy = np.random.permutation(y)
+    permy = np.random.default_rng(rep).permutation(y)
     perm_stat = est.statistic(X, permy)
 
     return obs_stat, perm_stat
@@ -74,6 +75,9 @@ def compute_null(rep, est, est_name, sim, p=1):
     """
     Calculates empirical null and alternate distribution for each test.
     """
+    out_file = f"{SAVE_PATH}/{sim}_{est_name}_{p}_{rep}.txt"
+    if os.path.exists(out_file):
+        return
     X, _ = make_marron_wand_classification(
         n_samples=SAMP_SIZE,
         n_dim=DIMENSIONS[-1],
@@ -85,11 +89,9 @@ def compute_null(rep, est, est_name, sim, p=1):
         pval = _nonperm_pval(est, X, p)
         save_kwargs = {"X": [pval]}
     else:
-        alt_dist, null_dist = _perm_stat(est, X, p)
+        alt_dist, null_dist = _perm_stat(est, X, p, rep)
         save_kwargs = {"X": [alt_dist, null_dist], "delimiter": ","}
-    np.savetxt(
-        f"{SAVE_PATH}/{sim}_{est_name}_{p}_{rep}.txt", **save_kwargs
-    )
+    np.savetxt(out_file, **save_kwargs)
 
 
 # Run this block to regenerate power curves. Note that this takes a very long time!
